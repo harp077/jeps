@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>JEPS</title>
+        <meta charset="utf-8"/>
+        <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+        <link rel="stylesheet" type="text/css" href="css/n3components-2.4.4.min.css"> 
+    </head>
+    <body>
+
+        <div id="app" class="container" style="background-color: mintcream">
+
+            <jeps-header>
+                &nbsp; Java Enterprise Password Storage &nbsp; 
+            </jeps-header>
+
+            <div class="row">
+                <n3-nav mode="horizontal" style="background-color: #00bc8c;">
+                    <n3-nav-item index="1">
+                        <button class="btn btn-info" v-on:click="openModalClientInfo">Client Info</button>
+                    </n3-nav-item>
+                    <n3-sub-nav index="2">
+                        <template slot="title">Nav two</template>
+                        <n3-nav-item index="2-1">Item one</n3-nav-item>
+                        <n3-nav-item index="2-2">Item two</n3-nav-item>
+                        <n3-nav-item index="2-3">Item three</n3-nav-item>
+                    </n3-sub-nav>
+                    <n3-nav-item index="3" v-if="prava[0].authority==='admin'">
+                        <n3-dropdown>
+                            <div slot="trigger">
+                                <button class="btn btn-info">
+                                    Admin &nbsp;|
+                                    <span class="caret"></span>
+                                </button>
+
+                            </div>
+                            <li>
+                                <a v-on:click="openModalAddUser">Add User</a>
+                            </li>
+                        </n3-dropdown>  
+                    </n3-nav-item>
+                    <n3-nav-item index="4">
+                        <a title="Logout" href="/logout">
+                            <img src="img/24x24/exit.png"/>
+                        </a>
+                    </n3-nav-item>                    
+                </n3-nav> 
+            </div>
+
+            <br>
+            <div class="row">
+                <div class="col-md-10 col-md-offset-1">
+                    <div class="panel panel-primary">
+                        <!--<div class="panel-title">Pwd = {{generatedPWD}}</div>-->
+                        <div style="font-weight: bold" class="panel-heading panel-title text-center h4 text-capitalize">
+                            Password Generator
+                        </div>
+                        <div class="panel-body">
+                            <div class="form-inline text-center">
+                                <label style="font-weight: bold" class="btn btn-success" for="passgen">
+                                    Generated Password = 
+                                </label>
+                                <input class="form-control" 
+                                       style="width: 45%" 
+                                       id="passgen" 
+                                       type="text" 
+                                       v-on:keyup.enter="setGeneratedPWD"
+                                       v-model="GeneratedPWD"/>&nbsp;
+                                <button v-on:click="setGeneratedPWD()" id="pwd" type="button" class="btn btn-primary">
+                                    Generate Random Password
+                                </button>
+                            </div>
+                            <p></p>
+                            <p class="text-center">
+                                <strong style="font-weight: bold" class="glyphicon glyphicon-check glyphicon-align-justify "> 
+                                    Options: 
+                                </strong>
+                            </p>
+                            <table class="table table-bordered table-striped text-center info">
+                                <tr class="info">
+                                    <td>
+                                        <label for="spc">Use Special Chars = </label>
+                                        <input type="checkbox" id="spc" v-model="useSpecialChar">
+                                        {{useSpecialChar}}
+                                    </td>
+                                    <td>
+                                        <label for="abcsel">Alphabet select:</label>
+                                        <select v-model="alphabet" id="abcsel">
+                                            <option v-for="alf in alfavites">{{alf}}</option>
+                                        </select> 
+                                    </td>
+                                    <td>
+                                        <label for="snum">Number of Chars: </label>
+                                        <select v-model="charNum" id="snum">
+                                            <option v-for="num in numberChars">{{num}}</option>
+                                        </select>
+                                    </td>
+                                <tr>
+                            </table>
+                        </div>
+                        <!--<div class="panel-footer">Java Security Random Generator used</div>-->
+                    </div> 
+                </div>   
+            </div>
+
+            <div class="row">
+                <form role="form" class="form-inline" onsubmit="return false;">
+                    <div class="form-group">
+                        <textarea v-model="textrest" id="data" cols="35" rows="1">
+                        </textarea>
+                        <input title="rs-login" v-model="rslogin"/>
+                        <input title="rs-passw" v-model="rspassw"/>
+                    </div>
+                    <button v-on:click="getRestAuth()" id="get" type="button" class="btn btn-primary">get</button>
+                    <button class="btn btn-warning" v-on:click="getRestAuth()">rest get</button>
+                </form> 
+            </div>
+
+            <jeps-rest-pwds ref="jepsrestpwds"></jeps-rest-pwds>
+
+            <n3-modal title='Client Information' effect="zoom" width="400px" ref="ModalClientInfo">
+                <div slot="header" class="text-right">
+                    <button class="btn btn-xs btn-warning" v-on:click="closeModalClientInfo">X</button>
+                </div>
+                <div slot="body">
+                    <jeps-client-info zaglavie="Client Information" ref='clientinfoobj'></jeps-client-info>
+                </div>
+                <div slot="footer" class="text-center">
+                    <button class="btn btn-success" v-on:click="closeModalClientInfo">Close</button><br>.
+                </div>
+            </n3-modal> 
+
+            <n3-modal title='Add User' effect="zoom" width="400px" ref="ModalAddUser">
+                <div slot="header" class="text-right">
+                    <button class="btn btn-xs btn-warning" v-on:click.prevent="closeModalAddUser">X</button>
+                </div>
+                <div slot="body">
+                    <div class="panel panel-primary">
+                        <div style="font-weight: bold" class="panel-heading panel-title text-center h4 text-capitalize">
+                            Add User
+                        </div>
+                        <div class="panel-body">
+                            <form action="/rest/useradd" method="post">
+                                <div class="form-group">
+                                    <label for="inputEmail">Username:</label>
+                                    <input name="login" type="text" class="form-control" id="inputEmail">
+                                </div>
+                                <div class="form-group">
+                                    <label for="inputPassword1">Password:</label>
+                                    <input name="passw1" type="password" class="form-control" id="inputPassword1">
+                                </div>
+                                <div class="form-group">
+                                    <label for="inputPassword2">Retype Password:</label>
+                                    <input name="passw2" type="password" class="form-control" id="inputPassword2">
+                                </div>                                
+                                <div class="checkbox">
+                                    <label>
+                                        <input name="adm" type="checkbox"> Admin Role
+                                    </label>
+                                </div>
+                                <button class="btn btn-warning" v-on:click.prevent="closeModalAddUser">Cancel</button>
+                                <button type="submit" class="btn btn-success">Submit</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div slot="footer" class="text-center"></div>
+            </n3-modal>            
+
+            <jeps-footer mail="harp07@mail.ru" home="http://jeps.sf.net">
+                Role = {{prava[0].authority}}. Build: 26-04-2018. Roman Koldaev, Saratov city, Russia. 
+            </jeps-footer>
+
+        </div>
+        <!-- BASE -->
+        <script src="js/vue.min.js"></script>
+        <script src="js/axios.min.js"></script>
+        <!-- UI -->
+        <script src="js/n3components-2.4.4.min.js"></script> 
+        <!-- MY components -->
+        <script src="js/my/jeps-rest-pwds.js"></script>
+        <script src="js/my/jeps-client-info.js"></script>
+        <script src="js/my/jeps-header.js"></script>
+        <script src="js/my/jeps-footer.js"></script>
+
+        <script>
+                    var app = new Vue({
+                        el: '#app',
+                        ///////////////////
+                        data: {
+                            prava: {},
+                            charNum: 7,
+                            GeneratedPWD: {},
+                            RestAuth: {},
+                            alphabet: 'aA-zZ_0-9',
+                            useSpecialChar: false,
+                            alfavites: ["A-Z_0-9", "aA-zZ_0-9", "a-z_0-9"],
+                            numberChars: [7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+                        },
+                        /////////////////////////
+                        methods: {
+                            getPrava: function () {
+                                axios.get('/rest/prava')
+                                        .then(response => {
+                                            this.prava = response.data;
+                                        })
+                                        .catch(error => {
+                                            //this.restdata.errors = push(error);
+                                        });
+                            },
+                            openModalClientInfo() {
+                                this.$refs.ModalClientInfo.open();
+                            },
+                            closeModalClientInfo() {
+                                this.$refs.ModalClientInfo.close();
+                            },
+                            openModalAddUser() {
+                                this.$refs.ModalAddUser.open();
+                            },
+                            closeModalAddUser() {
+                                this.$refs.ModalAddUser.close();
+                            },
+                            setGeneratedPWD: function () {
+                                axios({
+                                    method: 'get',
+                                    url: '/rest/user/json',
+                                    params: {
+                                        alfavit: this.alphabet,
+                                        specuse: this.useSpecialChar,
+                                        numchar: this.charNum
+                                    }/*,
+                                     auth: {
+                                     //username: this.rslogin, 
+                                     //password: this.rspassw 
+                                     username: this.$refs.jepsrestpwds.apiuser,
+                                     password: this.$refs.jepsrestpwds.apipass
+                                     //username: 'rest', 
+                                     //password: 'rest'                                       
+                                     }*/
+                                })
+                                        // arg =>  === function(arg) !!! - стрелочные функции
+                                        .then(response => {
+                                            this.GeneratedPWD = response.data;
+                                        })
+                                        .catch(error => {
+                                            //this.restdata.errors = push(error);
+                                        });
+                            },
+                            getRestAuth: function () {
+                                axios.get('/rest/loginpassw')
+                                        .then(response => {
+                                            this.RestAuth = response.data;
+                                        })
+                                        .catch(error => {
+                                            //this.restdata.errors = push(error);
+                                        });
+                            }
+                        },
+                        ////////////////////////
+                        watch: {},
+                        ////////////////////////
+                        computed: {
+                            textrest: function () {
+                                return JSON.stringify(this.RestAuth);
+                                //return this.restdata.gets;
+                            },
+                            rslogin: function () {
+                                //return ''+Cookies.get('restauth');
+                                return '' + this.RestAuth.login;
+                            },
+                            rspassw: function () {
+                                //return ''+Cookies.get('restauth');
+                                return '' + this.RestAuth.passw;
+                            }
+                        },
+                        /////  LIFE-CICLE HOOK 
+                        created: function () {
+                            this.getRestAuth();
+                            this.getPrava();
+                        }
+                    });
+        </script>
+    </body>
+</html>
